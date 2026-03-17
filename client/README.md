@@ -1,70 +1,36 @@
-# Getting Started with Create React App
+# Collaborative Whiteboard - Client (Frontend)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This directory contains the React-based frontend for the Collaborative Whiteboard application.
 
-## Available Scripts
+## 🏗️ Architecture & Implementation
 
-In the project directory, you can run:
+The frontend is a Single Page Application (SPA) built using **React**. It is responsible for rendering the UI, managing the local drawing state, capturing user inputs, and communicating with the backend over WebSockets.
 
-### `npm start`
+### 1. Canvas Rendering (HTML5)
+We utilize the native HTML5 `<canvas>` element rather than a heavy third-party drawing library. 
+- The canvas context (`getContext('2d')`) is exposed and controlled via a React `useRef`.
+- We implement DPI scaling (`canvas.width = window.innerWidth * 2`) to ensure that lines drawn on high-resolution Retina displays remain crisp rather than blurry.
+- A dynamic window `resize` event listener dynamically creates a temporary canvas to cache the current drawing state, resizes the main canvas window, and then repaints the cached image so that drawings are not lost when the user adjusts their browser size.
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### 2. State Management
+React's `useState` hooks are utilized to track:
+- Active Tools (Pen, Eraser, Text).
+- Stroke characteristics (Color hex codes, Line thickness).
+- The `roomId` the user is currently authenticated within.
+- Other active user cursors (`{ [userId]: {x, y} }`).
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+### 3. Real-Time Socket Interfacing
+The `socket.io-client` dependency connects to our backend server on mount.
+- **Emitting**: Whenever the user draws a stroke (`onMouseMove`), drops text, or moves their mouse, an event (`draw-line`, `draw-text`, `mouse-move`) is broadcasted to the server containing the exact `x/y` coordinates and color selections.
+- **Listening**: The component actively listens for real-time broadcasts from other users. When a remote `draw-line` event fires, the local canvas immediately executes a `context.stroke()` at those remote coordinates, creating the illusion of synchronized multi-player drawing.
 
-### `npm test`
+### 4. Advanced Drawing Features
+- **Dynamic Brush Stroke**: The `drawLine` function calculates the Euclidean distance between the previous coordinate and the current coordinate to determine the "speed" of the mouse. The line thickness dynamically scales inversely to speed, providing a natural, calligraphy-style brush effect.
+- **True Eraser**: Employs the `destination-out` global composite operation to genuinely delete pixels from the canvas buffer, rather than simply painting white lines over the background.
+- **Local Undo Cache**: Every time a discrete drawing action is finished (`onMouseUp`), the canvas is exported as a Base64 data URI (`toDataURL`) and pushed to an array. Pressing the Undo button replaces the current canvas view with the previous Base64 snapshot and commands the server to clear and redraw all remote clients.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## 🚀 Running Locally
 
-### `npm run build`
-
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Inside this directory:
+1. `npm install`
+2. `npm start` (Runs on `http://localhost:3000` by default)
